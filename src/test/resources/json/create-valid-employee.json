@@ -1,0 +1,15 @@
+{
+  "type": "EMPLOYEE",
+  "firstName": "Janek",
+  "lastName": "Nowy",
+  "pesel": "02070803628",
+  "height": 180.0,
+  "weight": 75.0,
+  "email": "janek.nowy@test.pl",
+  "gender": "MALE",
+  "password": "test123",
+  "currentPosition": "Tester",
+  "currentSalary": 8000,
+  "hireDate": "2023-01-01",
+  "endDate": "2026-01-01"
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="add-default-users" author="your_name">
+        <insert tableName="persons">
+            <column name="id_person" valueNumeric="1"/>
+            <column name="email" value="importer@i.com"/>
+            <column name="first_name" value="Importer"/>
+            <column name="gender" value="FEMALE"/>
+            <column name="height" valueNumeric="165.0"/>
+            <column name="last_name" value="Importer"/>
+            <column name="pesel" value="93111111118"/>
+            <column name="type" value="IMPORTER"/>
+            <column name="version" valueNumeric="0"/>
+            <column name="weight" valueNumeric="60.0"/>
+            <column name="password" value="$2a$12$nlvhlF.PC68Ow9f/aRzeIeO3/o6H0KwBe9LacLEIbnm47ND8wLSAi"/>
+        </insert>
+
+        <insert tableName="persons">
+            <column name="id_person" valueNumeric="2"/>
+            <column name="email" value="admin@a.com"/>
+            <column name="first_name" value="Admin"/>
+            <column name="gender" value="MALE"/>
+            <column name="height" valueNumeric="180.0"/>
+            <column name="last_name" value="Admin"/>
+            <column name="pesel" value="99112211754"/>
+            <column name="type" value="ADMIN"/>
+            <column name="version" valueNumeric="0"/>
+            <column name="weight" valueNumeric="80.0"/>
+            <column name="password" value="$2a$12$GGCJl7TTGfZpLxzOU3y9q.lh9yernJDkjLRM/r6qxPsQHAtbCpZPO"/>
+        </insert>
+
+        <update tableName="id_sequence">
+            <column name="next_val" valueNumeric="3"/>
+            <where>entity_name = 'person'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

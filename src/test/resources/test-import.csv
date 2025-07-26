@@ -1,0 +1,4 @@
+type,firstName,lastName,pesel,height,weight,email,gender,hireDate,endDate,currentPosition,currentSalary,password
+EMPLOYEE,xxxxxxx,xxxxxxxxxx,95010112345,44.74,36.32,terde2@wp.pl,FEMALE,2032-10-06,2039-03-10,test_ea208992805e,20.72,test_8afa1130dbd5
+EMPLOYEE,xxxxxxx,xxxxxxxxxx,88030322222,44.74,36.32,test_dte2@wp.pl,FEMALE,2032-10-06,2039-03-10,test_ea208992805e,20.72,test_8afa1130dbd5
+EMPLOYEE,xxxxxxx,xxxxxxxxxx,47070733333,44.74,36.32,tesdde2@wp.pl,FEMALE,2032-10-06,2039-03-10,test_ea208992805e,20.72,test_8afa1130dbd5

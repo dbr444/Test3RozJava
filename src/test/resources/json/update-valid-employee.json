@@ -1,0 +1,14 @@
+{
+  "type": "EMPLOYEE",
+  "firstName": "Janek",
+  "lastName": "Kowal",
+  "pesel": "12345678901",
+  "height": 185.0,
+  "weight": 85.0,
+  "email": "janek.kowal@test.pl",
+  "gender": "MALE",
+  "version": 0,
+  "password": "test123",
+  "currentPosition": "Dev",
+  "currentSalary": 10000
+}

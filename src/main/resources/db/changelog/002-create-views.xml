@@ -1,0 +1,115 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+
+    <changeSet id="1-create-positions-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.positions_view AS
+            SELECT
+                id_position,
+                end_date,
+                job_name,
+                salary,
+                start_date,
+                employee_id
+            FROM person_management.positions
+        </sql>
+    </changeSet>
+
+    <changeSet id="2-create-person-summary-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.person_summary_view AS
+            SELECT
+                id_person,
+                version,
+                first_name,
+                last_name,
+                pesel,
+                height,
+                weight,
+                email,
+                gender,
+                type
+            FROM person_management.persons
+        </sql>
+    </changeSet>
+
+    <changeSet id="3-create-employee-summary-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.employee_summary_view AS
+            SELECT
+                ps.id_person,
+                ps.version,
+                ps.first_name,
+                ps.last_name,
+                ps.pesel,
+                ps.height,
+                ps.weight,
+                ps.email,
+                ps.gender,
+                ps.type,
+                COUNT(DISTINCT pv.job_name) AS profession_count,
+                COUNT(pv.id_position) AS position_count,
+                pv.salary AS current_salary,
+                pv.job_name AS current_position,
+                pv.start_date,
+                pv.end_date
+            FROM person_management.person_summary_view ps
+                     JOIN person_management.employees e ON ps.id_person = e.id_person
+                     LEFT JOIN person_management.positions_view pv ON e.id_person = pv.employee_id GROUP BY
+                ps.id_person,
+                ps.version,
+                ps.first_name,
+                ps.last_name,
+                ps.pesel,
+                ps.height,
+                ps.weight,
+                ps.email,
+                ps.gender,
+                ps.type,
+                pv.salary,
+                pv.job_name,
+                pv.start_date,
+                pv.end_date
+        </sql>
+    </changeSet>
+
+    <changeSet id="4-create-retiree-summary-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.retiree_summary_view AS
+            SELECT
+                r.id_person,
+                r.pension_amount,
+                r.years_worked
+            FROM person_management.retirees r
+        </sql>
+    </changeSet>
+
+    <changeSet id="5-create-student-summary-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.student_summary_view AS
+            SELECT
+                s.id_person,
+                s.current_university_name,
+                s.study_major,
+                s.study_year,
+                s.scholarship_amount
+            FROM person_management.students s
+        </sql>
+    </changeSet>
+
+    <changeSet id="6-create-user-login-view" author="your_name" runAlways="true">
+        <sql>
+            CREATE OR REPLACE VIEW person_management.user_login_view AS
+            SELECT
+                email,
+                password,
+                type
+            FROM person_management.persons
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
