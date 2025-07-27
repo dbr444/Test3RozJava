@@ -47,7 +47,6 @@ public abstract class GenericCrudService<T extends Identificationable, R extends
         return repository.save(entity);
     }
 
-
     @Transactional
     public List<T> addAllWithManualId(List<T> entities) {
         for (T e : entities) {
@@ -57,28 +56,6 @@ public abstract class GenericCrudService<T extends Identificationable, R extends
         }
         return repository.saveAll(entities);
     }
-
-//
-//    @Override
-//    @Transactional
-//    public T update(T entity) {
-//        if (entity.getId() == null) {
-//            throw new IllegalEntityIdException("Id shouldn't be null!", entityType);
-//        }
-//
-//        try {
-//            T existing = entityManager.find(entityType, entity.getId(), LockModeType.OPTIMISTIC);
-//            if (existing == null) {
-//                throw new RequestedEntityNotFoundException("Entity with id " + entity.getId() + " not found!", entityType);
-//            }
-//
-//            entityManager.detach(existing);
-//            return repository.save(entity);
-//
-//        } catch (OptimisticLockException e) {
-//            throw new ObjectOptimisticLockingFailureException(entityType, entity.getId());
-//        }
-//    }
 
     @Override
     @Transactional

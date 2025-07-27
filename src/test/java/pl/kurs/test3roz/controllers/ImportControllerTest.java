@@ -114,7 +114,7 @@ class ImportControllerTest {
     @Test
     void shouldReturn409WhenImportAlreadyRunningAndParallelNotAllowed() throws Exception {
         importProperties.setAllowParallelImports(false);
-        importLock.tryLock(); // zablokuj zamek
+        importLock.tryLock();
 
         MockMultipartFile file = new MockMultipartFile(
                 "file", "test.csv", "text/csv",
