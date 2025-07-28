@@ -1,5 +1,12 @@
 package pl.kurs.test3roz.controllers;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +26,8 @@ import pl.kurs.test3roz.dto.StudentDto;
 import pl.kurs.test3roz.exceptions.IllegalEntityIdException;
 import pl.kurs.test3roz.exceptions.IllegalEntityStateException;
 import pl.kurs.test3roz.exceptions.RequestedEntityNotFoundException;
-import pl.kurs.test3roz.imports.ImportStatus;
 import pl.kurs.test3roz.models.Gender;
-import pl.kurs.test3roz.models.IdGenerator;
+import pl.kurs.test3roz.models.PersonType;
 import pl.kurs.test3roz.models.Position;
 import pl.kurs.test3roz.models.people.Employee;
 import pl.kurs.test3roz.models.people.Person;
@@ -35,13 +41,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -62,12 +61,6 @@ class PersonControllerTest {
     private EmployeeCrudService employeeCrudService;
 
     @Autowired
-    private IdGenerator idGenerator;
-
-    @Autowired
-    private ImportStatus importStatus;
-
-    @Autowired
     private PositionCrudService positionCrudService;
 
     private Employee employee;
@@ -76,9 +69,7 @@ class PersonControllerTest {
     void setUp() {
         positionCrudService.deleteAllEntities();
         personCrudService.deleteAllEntities();
-        idGenerator.getEm()
-                .createNativeQuery("INSERT INTO id_sequence (entity_name, next_val) VALUES ('person', 1)")
-                .executeUpdate();
+
         employee = new Employee();
         employee.setFirstName("Jan");
         employee.setLastName("Kowalski");
@@ -88,13 +79,12 @@ class PersonControllerTest {
         employee.setWeight(80.0);
         employee.setGender(Gender.MALE);
         employee.setPassword("password");
-        employee.setId(idGenerator.nextId());
         setTypeFromAnnotation(employee);
-        employeeCrudService.addWithManualId(employee);
+        employeeCrudService.add(employee);
     }
 
     private void setTypeFromAnnotation(Employee e) {
-        var annotation = e.getClass().getAnnotation(pl.kurs.test3roz.models.PersonType.class);
+        PersonType annotation = e.getClass().getAnnotation(PersonType.class);
         if (annotation != null) {
             e.setType(annotation.value());
         } else {
@@ -173,7 +163,6 @@ class PersonControllerTest {
         e1.setGender(Gender.MALE);
         e1.setPassword("pass");
         setTypeFromAnnotation(e1);
-        e1.setId(idGenerator.nextId());
 
         Employee e2 = new Employee();
         e2.setFirstName("C");
@@ -185,10 +174,9 @@ class PersonControllerTest {
         e2.setGender(Gender.FEMALE);
         e2.setPassword("pass");
         setTypeFromAnnotation(e2);
-        e2.setId(idGenerator.nextId());
 
-        employeeCrudService.addWithManualId(e1);
-        employeeCrudService.addWithManualId(e2);
+        employeeCrudService.add(e1);
+        employeeCrudService.add(e2);
 
         List<Person> all = personCrudService.getAll();
         assertThat(all).hasSize(3);
@@ -231,44 +219,6 @@ class PersonControllerTest {
         Position p = (Position) method.invoke(personService, e);
 
         assertThat(p).isNull();
-    }
-
-    @Test
-    void shouldCreateMultiplePersonsSuccessfully() {
-        CreateEmployeeCommand cmd1 = new CreateEmployeeCommand();
-        cmd1.setFirstName("Anna");
-        cmd1.setLastName("Kowalska");
-        cmd1.setEmail("anna1@example.com");
-        cmd1.setPesel("90010112345");
-        cmd1.setPassword("pass123");
-        cmd1.setGender(Gender.FEMALE);
-        cmd1.setHeight(165.0);
-        cmd1.setWeight(60.0);
-        cmd1.setCurrentPosition("Developer");
-        cmd1.setCurrentSalary(BigDecimal.valueOf(8000));
-        cmd1.setHireDate(LocalDate.now().minusYears(1));
-        cmd1.setEndDate(LocalDate.now());
-
-        CreateEmployeeCommand cmd2 = new CreateEmployeeCommand();
-        cmd2.setFirstName("Jan");
-        cmd2.setLastName("Nowak");
-        cmd2.setEmail("jan1@example.com");
-        cmd2.setPesel("85030312345");
-        cmd2.setPassword("pass123");
-        cmd2.setGender(Gender.MALE);
-        cmd2.setHeight(180.0);
-        cmd2.setWeight(80.0);
-        cmd2.setCurrentPosition("Manager");
-        cmd2.setCurrentSalary(BigDecimal.valueOf(12000));
-        cmd2.setHireDate(LocalDate.now().minusYears(2));
-        cmd2.setEndDate(LocalDate.now());
-
-        List<CreatePersonCommand> commands = List.of(cmd1, cmd2);
-
-        personService.createAll(commands);
-
-        List<Person> allPersons = personCrudService.getAll();
-        assertThat(allPersons).hasSizeGreaterThanOrEqualTo(2);
     }
 
     @Test
@@ -321,24 +271,11 @@ class PersonControllerTest {
 
     @Test
     void shouldThrowWhenGettingNonExistentEmployeeById() {
-        Long nonExistentId = 99999L;
+        String nonExistentId = "9999999999999999";
 
         assertThatThrownBy(() -> employeeCrudService.get(nonExistentId))
                 .isInstanceOf(RequestedEntityNotFoundException.class)
                 .hasMessageContaining("Entity with id " + nonExistentId + " not found!");
-    }
-
-    @Test
-    void shouldThrowWhenAddingEmployeeWithManualIdButIdIsNull() {
-        Employee employee = new Employee();
-        employee.setId(null);
-
-        assertThatThrownBy(() -> employeeCrudService.addWithManualId(employee))
-                .isInstanceOf(IllegalEntityStateException.class)
-                .satisfies(e -> {
-                    IllegalEntityStateException ex = (IllegalEntityStateException) e;
-                    assertThat(ex.getEntityType()).isEqualTo(Employee.class);
-                });
     }
 
     @Test
@@ -353,36 +290,11 @@ class PersonControllerTest {
 
     @Test
     void shouldThrowRequestedEntityNotFoundWhenFindByIdWithLockNotExists() {
-        Long nonExistentId = 9999L;
+        String nonExistentId = "9999999999999999";
 
         assertThatThrownBy(() -> employeeCrudService.findByIdWithLock(nonExistentId))
                 .isInstanceOf(RequestedEntityNotFoundException.class)
                 .hasMessageContaining("Entity not found!");
-    }
-
-    @Test
-    void shouldThrowWhenAddingWithNonNullId() {
-        Employee e = new Employee();
-        e.setId(123L);
-
-        assertThatThrownBy(() -> employeeCrudService.add(e))
-                .isInstanceOf(IllegalEntityStateException.class)
-                .hasMessageContaining("Entity ID should be null before persisting!");
-    }
-
-    @Test
-    void shouldThrowWhenAddingListWithManualIdButOneHasNullId() {
-        Employee e1 = new Employee();
-        e1.setId(123L);
-
-        Employee e2 = new Employee();
-        e2.setId(null);
-
-        List<Employee> list = List.of(e1, e2);
-
-        assertThatThrownBy(() -> employeeCrudService.addAllWithManualId(list))
-                .isInstanceOf(IllegalEntityStateException.class)
-                .hasMessageContaining("Entity ID must be set before persisting!");
     }
 
     private CreateStudentCommand createValidStudentCommand() {
@@ -400,7 +312,6 @@ class PersonControllerTest {
         return cmd;
     }
 
-
     static class NoAnnotationPerson extends Person {
         public NoAnnotationPerson() {
         }
@@ -416,5 +327,27 @@ class PersonControllerTest {
         public Class<? extends PersonDto> getTargetDtoClass() {
             return PersonDto.class;
         }
+    }
+    @Test
+    void shouldThrowWhenAddingEntityWithNonNullId() {
+        Employee e = new Employee();
+        e.setId("test");
+        e.setFirstName("Test");
+        e.setLastName("User");
+        e.setPesel("12345678901");
+        e.setEmail("test@example.com");
+        e.setHeight(180.0);
+        e.setWeight(75.0);
+        e.setGender(Gender.MALE);
+        e.setPassword("secret");
+        setTypeFromAnnotation(e);
+
+        assertThatThrownBy(() -> employeeCrudService.add(e))
+                .isInstanceOf(IllegalEntityStateException.class)
+                .hasMessageContaining("Entity ID should be null before persisting!")
+                .satisfies(ex -> {
+                    IllegalEntityStateException ie = (IllegalEntityStateException) ex;
+                    assertThat(ie.getEntityType()).isEqualTo(Employee.class);
+                });
     }
 }

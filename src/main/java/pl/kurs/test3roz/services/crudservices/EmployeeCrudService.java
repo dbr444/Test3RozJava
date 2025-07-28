@@ -11,7 +11,7 @@ public class EmployeeCrudService extends GenericCrudService<Employee, EmployeeRe
         super(repository);
     }
 
-    public Employee findByIdWithLock(Long id) {
+    public Employee findByIdWithLock(String id) {
         return repository.findByIdWithLock(id)
                 .orElseThrow(() -> new RequestedEntityNotFoundException("Entity not found!", entityType));
     }

@@ -14,7 +14,7 @@ import pl.kurs.test3roz.models.Gender;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 
 public class PersonDto {
-    private Long id;
+    private String id;
     private String firstName;
     private String lastName;
     private String pesel;

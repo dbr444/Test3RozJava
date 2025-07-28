@@ -22,7 +22,7 @@ public class PersonSummaryView implements Identificationable {
 
     @Id
     @Column(name = "id_person")
-    private Long id;
+    private String id;
 
     @Version
     private Long version;

@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.validator.constraints.pl.PESEL;
+import org.hibernate.annotations.GenericGenerator;
 import pl.kurs.test3roz.models.Gender;
 import pl.kurs.test3roz.models.Identificationable;
 import java.io.Serializable;
@@ -20,8 +20,10 @@ public abstract class Person implements Identificationable, Serializable {
     static final long serialVersionUID = 42L;
 
     @Id
-    @Column(name = "id_person")
-    private Long id;
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")//znalazlem na stacku. zostawiam juz zeby nie popsuc bo bylo kombinowania:)
+    @Column(name = "id_person", length = 36)
+    private String id;
 
     @Version
     protected Long version;
@@ -54,8 +56,4 @@ public abstract class Person implements Identificationable, Serializable {
     @JsonIgnore
     @Column(nullable = false)
     protected String password;
-
-
 }
-
-

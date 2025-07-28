@@ -7,8 +7,7 @@
 
     <changeSet id="add-default-users" author="your_name">
         <insert tableName="persons">
-            <column name="id_person" valueNumeric="1"/>
-            <column name="email" value="importer@i.com"/>
+            <column name="id_person" valueComputed="UUID()"/> <column name="email" value="importer@i.com"/>
             <column name="first_name" value="Importer"/>
             <column name="gender" value="FEMALE"/>
             <column name="height" valueNumeric="165.0"/>
@@ -21,8 +20,7 @@
         </insert>
 
         <insert tableName="persons">
-            <column name="id_person" valueNumeric="2"/>
-            <column name="email" value="admin@a.com"/>
+            <column name="id_person" valueComputed="UUID()"/> <column name="email" value="admin@a.com"/>
             <column name="first_name" value="Admin"/>
             <column name="gender" value="MALE"/>
             <column name="height" valueNumeric="180.0"/>
@@ -33,11 +31,6 @@
             <column name="weight" valueNumeric="80.0"/>
             <column name="password" value="$2a$12$GGCJl7TTGfZpLxzOU3y9q.lh9yernJDkjLRM/r6qxPsQHAtbCpZPO"/>
         </insert>
-
-        <update tableName="id_sequence">
-            <column name="next_val" valueNumeric="3"/>
-            <where>entity_name = 'person'</where>
-        </update>
     </changeSet>
 
 </databaseChangeLog>

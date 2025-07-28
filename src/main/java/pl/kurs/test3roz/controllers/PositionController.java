@@ -19,7 +19,7 @@ public class PositionController {
     }
 
     @PostMapping
-    public ResponseEntity<PositionDto> assignPosition(@PathVariable Long employeeId, @RequestBody @Valid CreatePositionCommand command) {
+    public ResponseEntity<PositionDto> assignPosition(@PathVariable String employeeId, @RequestBody @Valid CreatePositionCommand command) {
         PositionDto positionDto = positionService.assignPositionToEmployee(employeeId, command);
         return ResponseEntity.status(HttpStatus.CREATED).body(positionDto);
     }

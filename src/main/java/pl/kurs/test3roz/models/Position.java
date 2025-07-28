@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 import pl.kurs.test3roz.models.people.Employee;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,9 +18,10 @@ import java.util.Objects;
 public class Position implements Identificationable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_position")
-    private Long id;
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(name = "id_position", length = 36)
+    private String id;
 
     @Column(nullable = false)
     private String jobName;

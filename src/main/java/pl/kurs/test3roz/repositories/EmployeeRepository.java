@@ -9,8 +9,8 @@ import pl.kurs.test3roz.models.people.Employee;
 
 import java.util.Optional;
 
-public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+public interface EmployeeRepository extends JpaRepository<Employee, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Employee e left join fetch e.positions where e.id = :id")
-    Optional<Employee> findByIdWithLock(@Param("id") Long id);
+    Optional<Employee> findByIdWithLock(@Param("id") String id);
 }

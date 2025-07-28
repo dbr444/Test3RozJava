@@ -26,7 +26,7 @@ public class PositionService {
         this.modelMapper = modelMapper;
     }
 
-    public PositionDto assignPositionToEmployee(Long employeeId, CreatePositionCommand command) {
+    public PositionDto assignPositionToEmployee(String employeeId, CreatePositionCommand command) {
         Employee employee = employeeCrudService.findByIdWithLock(employeeId);
         validateDates(command.getStartDate(), command.getEndDate(), employee.getPositions());
 
@@ -50,7 +50,6 @@ public class PositionService {
         return p;
     }
 
-    //walidcja dat
     private void validateDates(LocalDate newStart, LocalDate newEnd, List<Position> existing) {
         validateDateOrder(newStart, newEnd);
         ensureNoOverlapping(existing, newStart, newEnd);

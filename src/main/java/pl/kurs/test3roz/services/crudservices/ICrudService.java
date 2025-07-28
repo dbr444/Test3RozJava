@@ -4,8 +4,7 @@ import java.util.List;
 
 public interface ICrudService<T> {
     T add(T entity);
-//    T update(T entity);
-    T get(Long id);
+    T get(String id);
     List<T> getAll();
     void deleteAllEntities();
 }

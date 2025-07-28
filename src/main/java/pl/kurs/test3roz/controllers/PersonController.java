@@ -42,10 +42,8 @@ public class PersonController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PersonDto> updatePerson(@PathVariable Long id, @RequestBody @Valid UpdatePersonCommand command) {
+    public ResponseEntity<PersonDto> updatePerson(@PathVariable String id, @RequestBody @Valid UpdatePersonCommand command) {
         PersonDto updated = personService.updatePerson(id, command);
         return ResponseEntity.ok(updated);
     }
-
-
 }

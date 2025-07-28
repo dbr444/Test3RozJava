@@ -10,10 +10,10 @@ import java.time.LocalDate;
 @Setter
 @JsonTypeName("POSITION")
 public class PositionDto {
-    private Long id;
+    private String id;
     private String jobName;
     private LocalDate startDate;
     private LocalDate endDate;
     private BigDecimal salary;
-    private Long employeeId;
+    private String employeeId;
 }
