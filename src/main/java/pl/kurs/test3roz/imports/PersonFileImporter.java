@@ -1,5 +1,6 @@
 package pl.kurs.test3roz.imports;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import pl.kurs.test3roz.commands.CreatePersonCommand;
@@ -21,6 +22,7 @@ public class PersonFileImporter {
     private final PersonService personService;
     private final ImportProperties properties;
 
+    @Transactional
     public void run(InputStream inputStream, ImportStatus status, ImportLock lock) {
         try (Stream<String[]> stream = csvReader.read(inputStream)) {
             List<CreatePersonCommand> batch = new ArrayList<>();
@@ -38,10 +40,11 @@ public class PersonFileImporter {
             if (!batch.isEmpty()) {
                 personService.createAll(batch);
             }
-        }  catch (Exception e) {
+        } catch (Exception e) {
             status.setFailed(true);
             status.setFinishedAt(LocalDateTime.now());
             status.setRunning(false);
+            e.printStackTrace();
             throw e;
         } finally {
             lock.unlock();
