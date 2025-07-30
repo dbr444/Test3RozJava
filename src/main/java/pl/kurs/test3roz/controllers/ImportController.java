@@ -16,13 +16,14 @@ public class ImportController {
     private final ImportService importService;
 
     @PostMapping
-    public ResponseEntity<Void> importCsv(@RequestParam("file") @Valid MultipartFile file) {
-        importService.importCsv(file);
-        return ResponseEntity.accepted().build();
+    public ResponseEntity<String> importCsv(@RequestParam("file") @Valid MultipartFile file) {
+        String importId = importService.importCsv(file);
+        return ResponseEntity.accepted().body(importId);
     }
 
-    @GetMapping("/status")
-    public ResponseEntity<ImportStatus> getStatus() {
-        return ResponseEntity.ok(importService.getStatus());
+    @GetMapping("/status/{importId}")
+    public ResponseEntity<ImportStatus> getStatus(@PathVariable String importId) {
+        return ResponseEntity.ok(importService.getStatus(importId));
     }
+
 }

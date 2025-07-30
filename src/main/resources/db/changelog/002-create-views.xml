@@ -51,15 +51,12 @@
                 ps.email,
                 ps.gender,
                 ps.type,
-                COUNT(DISTINCT pv.job_name) AS profession_count,
                 COUNT(pv.id_position) AS position_count,
-                pv.salary AS current_salary,
-                pv.job_name AS current_position,
-                pv.start_date,
-                pv.end_date
+                COUNT(DISTINCT pv.job_name) AS profession_count
             FROM person_management.person_summary_view ps
                      JOIN person_management.employees e ON ps.id_person = e.id_person
-                     LEFT JOIN person_management.positions_view pv ON e.id_person = pv.employee_id GROUP BY
+                     LEFT JOIN person_management.positions_view pv ON e.id_person = pv.employee_id
+            GROUP BY
                 ps.id_person,
                 ps.version,
                 ps.first_name,
@@ -69,11 +66,7 @@
                 ps.weight,
                 ps.email,
                 ps.gender,
-                ps.type,
-                pv.salary,
-                pv.job_name,
-                pv.start_date,
-                pv.end_date
+                ps.type
         </sql>
     </changeSet>
 
