@@ -24,4 +24,11 @@ public class EmployeeSummaryView extends PersonSummaryView {
 
     private Long professionCount;
 
+    private BigDecimal currentSalary;
+
+    private String currentPosition;
+
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 }
