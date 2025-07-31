@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import pl.kurs.test3roz.imports.ImportIdDto;
 import pl.kurs.test3roz.imports.ImportService;
 import pl.kurs.test3roz.imports.ImportStatus;
 
@@ -16,9 +17,9 @@ public class ImportController {
     private final ImportService importService;
 
     @PostMapping
-    public ResponseEntity<String> importCsv(@RequestParam("file") @Valid MultipartFile file) {
-        String importId = importService.importCsv(file);
-        return ResponseEntity.accepted().body(importId);
+    public ResponseEntity<ImportIdDto> importCsv(@RequestParam("file") @Valid MultipartFile file) {
+        ImportIdDto importIdDto = importService.importCsv(file);
+        return ResponseEntity.accepted().body(importIdDto);
     }
 
     @GetMapping("/status/{importId}")

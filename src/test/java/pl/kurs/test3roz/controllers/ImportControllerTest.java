@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,9 +59,11 @@ class ImportControllerTest {
         byte[] content = Files.readAllBytes(Paths.get("src/test/resources/test-import.csv"));
         MockMultipartFile file = new MockMultipartFile("file", "test-import.csv", "text/csv", content);
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(file))
+        String response = mockMvc.perform(multipart("/api/imports").file(file))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         await().atMost(2, SECONDS).untilAsserted(() ->
                 mockMvc.perform(get("/api/imports/status/" + importId).with(user("test").roles("IMPORTER")))
@@ -94,9 +98,11 @@ class ImportControllerTest {
                 "type,firstName,lastName,pesel,height,weight,email,gender\nEMPLOYEE,A,B,INVALID_PESEL,180,75,a@b.pl,MALE".getBytes()
         );
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(file))
+        String response = mockMvc.perform(multipart("/api/imports").file(file))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         Thread.sleep(500);
 
@@ -158,9 +164,11 @@ class ImportControllerTest {
                 "type,firstName,lastName,pesel,height,weight,email,gender,password\nEMPLOYEE,A,B,INVALID_PESEL,180,75,a@b.pl,MALE,pass".getBytes()
         );
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(brokenFile))
+        String response = mockMvc.perform(multipart("/api/imports").file(brokenFile))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         Thread.sleep(500);
 
@@ -181,9 +189,11 @@ class ImportControllerTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "bad.csv", "text/csv", content.getBytes());
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(file))
+        String response = mockMvc.perform(multipart("/api/imports").file(file))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         Thread.sleep(500);
 
@@ -200,10 +210,12 @@ class ImportControllerTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "people.csv", "text/csv", content.getBytes());
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(file)
+        String response = mockMvc.perform(multipart("/api/imports").file(file)
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
             mockMvc.perform(get("/api/imports/status/" + importId)
@@ -223,10 +235,12 @@ class ImportControllerTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "people.csv", "text/csv", content.getBytes());
 
-        String importId = mockMvc.perform(multipart("/api/imports").file(file)
+        String response = mockMvc.perform(multipart("/api/imports").file(file)
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isAccepted())
                 .andReturn().getResponse().getContentAsString();
+
+        String importId = extractImportId(response);
 
         await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
             mockMvc.perform(get("/api/imports/status/" + importId)
@@ -237,18 +251,10 @@ class ImportControllerTest {
         });
     }
 
-//    @Test
-//    void shouldSetFailedAndUnlockWhenExceptionOccursInImportCsvBeforeAsync() throws Exception {
-//        MultipartFile faultyFile = mock(MultipartFile.class);
-//        when(faultyFile.getInputStream()).thenThrow(new RuntimeException("Simulated getInputStream failure"));
-//        when(faultyFile.getName()).thenReturn("file");
-//        when(faultyFile.getOriginalFilename()).thenReturn("broken.csv");
-//
-//        String importId = importService.importCsv(faultyFile);
-//
-//        ImportStatus status = importService.getStatus(importId);
-//        assertThat(status.isFailed()).isTrue();
-//        assertThat(status.isRunning()).isFalse();
-//        assertThat(importLock.isLocked()).isFalse();
-//    }
+    private String extractImportId(String response) throws Exception {
+        return new ObjectMapper()
+                .readTree(response)
+                .get("importId")
+                .asText();
+    }
 }

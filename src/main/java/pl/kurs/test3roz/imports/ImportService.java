@@ -23,7 +23,7 @@ public class ImportService {
 
     private final Map<String, ImportStatus> statusMap = new ConcurrentHashMap<>();
 
-    public String importCsv(MultipartFile file) {
+    public ImportIdDto importCsv(MultipartFile file) {
         validateLock();
         lock.tryLock();
 
@@ -38,7 +38,7 @@ public class ImportService {
             statusMap.put(importId, status);
 
             startAsyncImport(inputStream, status);
-            return importId;
+            return new ImportIdDto(importId);
         } catch (Exception e) {
             lock.unlock();
             throw new RuntimeException("Import failed", e);
