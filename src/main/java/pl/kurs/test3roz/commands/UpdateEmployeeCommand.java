@@ -1,8 +1,5 @@
 package pl.kurs.test3roz.commands;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import pl.kurs.test3roz.dto.EmployeeDto;
@@ -11,18 +8,11 @@ import pl.kurs.test3roz.models.PersonType;
 import pl.kurs.test3roz.models.people.Employee;
 import pl.kurs.test3roz.models.people.Person;
 
-import java.math.BigDecimal;
 
 @Getter
 @Setter
 @PersonType("EMPLOYEE")
 public class UpdateEmployeeCommand extends UpdatePersonCommand {
-    @NotBlank
-    private String currentPosition;
-
-    @NotNull
-    @DecimalMin("0.0")
-    private BigDecimal currentSalary;
 
     @Override
     public Class<? extends Person> getTargetClass() {
