@@ -39,25 +39,19 @@ public class PositionService {
     }
 
     //helpers
-    private Position mapToPosition(CreatePositionCommand c, Employee e) {
-        Position p = new Position();
-        p.setJobName(c.getJobName());
-        p.setStartDate(c.getStartDate());
-        p.setEndDate(c.getEndDate());
-        p.setSalary(c.getSalary());
-        p.setEmployee(e);
-        e.getPositions().add(p);
-        return p;
+    private Position mapToPosition(CreatePositionCommand createPositionCommand , Employee employee) {
+        Position position = new Position();
+        position.setJobName(createPositionCommand.getJobName());
+        position.setStartDate(createPositionCommand.getStartDate());
+        position.setEndDate(createPositionCommand.getEndDate());
+        position.setSalary(createPositionCommand.getSalary());
+        position.setEmployee(employee);
+        employee.getPositions().add(position);
+        return position;
     }
 
     private void validateDates(LocalDate newStart, LocalDate newEnd, List<Position> existing) {
-        validateDateOrder(newStart, newEnd);
         ensureNoOverlapping(existing, newStart, newEnd);
-    }
-
-    private void validateDateOrder(LocalDate newStart, LocalDate newEnd) {
-        if (newEnd != null && newEnd.isBefore(newStart))
-            throw new IllegalStateException("End date must not be before start date");
     }
 
     private void ensureNoOverlapping(List<Position> existing, LocalDate newStart, LocalDate newEnd) {
@@ -68,5 +62,4 @@ public class PositionService {
         if (overlaps)
             throw new IllegalStateException("Daty nakładają się na istniejące stanowisko.");
     }
-
 }

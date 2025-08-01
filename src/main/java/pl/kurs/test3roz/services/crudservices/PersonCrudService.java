@@ -9,5 +9,4 @@ public class PersonCrudService extends GenericCrudService<Person, PersonReposito
     public PersonCrudService(PersonRepository repository) {
         super(repository);
     }
-
 }
