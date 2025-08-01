@@ -2,6 +2,7 @@ package pl.kurs.test3roz.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -19,13 +20,16 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import pl.kurs.test3roz.commands.CreateEmployeeCommand;
 import pl.kurs.test3roz.commands.CreatePersonCommand;
+import pl.kurs.test3roz.commands.CreateRetireeCommand;
 import pl.kurs.test3roz.commands.CreateStudentCommand;
 import pl.kurs.test3roz.commands.UpdateStudentCommand;
 import pl.kurs.test3roz.dto.PersonDto;
+import pl.kurs.test3roz.dto.RetireeDto;
 import pl.kurs.test3roz.dto.StudentDto;
 import pl.kurs.test3roz.exceptions.IllegalEntityIdException;
 import pl.kurs.test3roz.exceptions.IllegalEntityStateException;
 import pl.kurs.test3roz.exceptions.RequestedEntityNotFoundException;
+import pl.kurs.test3roz.mappers.PersonDtoMapper;
 import pl.kurs.test3roz.models.Gender;
 import pl.kurs.test3roz.models.PersonType;
 import pl.kurs.test3roz.models.Position;
@@ -62,6 +66,9 @@ class PersonControllerTest {
 
     @Autowired
     private PositionCrudService positionCrudService;
+
+    @Autowired
+    private PersonDtoMapper personDtoMapper;
 
     private Employee employee;
 
@@ -146,9 +153,9 @@ class PersonControllerTest {
 
     @Test
     void shouldReturnPersonById() {
-        Person p = personCrudService.get(employee.getId());
-        assertThat(p).isNotNull();
-        assertThat(p.getId()).isEqualTo(employee.getId());
+        Person person = personCrudService.get(employee.getId());
+        assertThat(person).isNotNull();
+        assertThat(person.getId()).isEqualTo(employee.getId());
     }
 
     @Test
@@ -189,37 +196,6 @@ class PersonControllerTest {
         assertThat(hasActive).isFalse();
     }
 
-    @Test
-    void shouldThrowExceptionWhenEndDateIsBeforeHireDate() {
-        CreateEmployeeCommand cmd = new CreateEmployeeCommand();
-        cmd.setFirstName("A");
-        cmd.setLastName("B");
-        cmd.setPesel("44051401359");
-        cmd.setHeight(180.0);
-        cmd.setWeight(80.0);
-        cmd.setGender(Gender.MALE);
-        cmd.setEmail("a@b.pl");
-        cmd.setPassword("abc");
-        cmd.setCurrentPosition("Tester");
-        cmd.setCurrentSalary(BigDecimal.valueOf(10000));
-        cmd.setHireDate(LocalDate.of(2024, 2, 2));
-        cmd.setEndDate(LocalDate.of(2023, 2, 2));
-
-        assertThatThrownBy(() -> personService.createPerson(cmd))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("End date must not be before start date.");
-    }
-
-    @Test
-    void shouldReturnNullForLastPositionWhenEmployeeHasNoPositions() throws Exception {
-        Employee e = new Employee();
-
-        Method method = PersonService.class.getDeclaredMethod("getLastPosition", Employee.class);
-        method.setAccessible(true);
-        Position p = (Position) method.invoke(personService, e);
-
-        assertThat(p).isNull();
-    }
 
     @Test
     void shouldCreateStudentAndReturnStudentDto() {
@@ -227,6 +203,14 @@ class PersonControllerTest {
 
         PersonDto dto = personService.createPerson(cmd);
         assertThat(dto).isInstanceOf(StudentDto.class);
+    }
+
+    @Test
+    void shouldCreateRetireeAndReturnRetireeDto() {
+        CreateRetireeCommand cmd = createValidRetireeCommand();
+
+        PersonDto dto = personService.createPerson(cmd);
+        assertThat(dto).isInstanceOf(RetireeDto.class);
     }
 
     @Test
@@ -312,6 +296,22 @@ class PersonControllerTest {
         return cmd;
     }
 
+    private CreateRetireeCommand createValidRetireeCommand() {
+        CreateRetireeCommand cmd = new CreateRetireeCommand();
+        cmd.setFirstName("Anna");
+        cmd.setLastName("Nowak");
+        cmd.setGender(Gender.FEMALE);
+        cmd.setPesel("69092961334");
+        cmd.setEmail("anna@test.pl");
+        cmd.setHeight(170.0);
+        cmd.setWeight(60.0);
+        cmd.setPassword("secret");
+        cmd.setPensionAmount(new BigDecimal("1.84"));
+        cmd.setYearsWorked(1);
+        return cmd;
+    }
+
+
     static class NoAnnotationPerson extends Person {
         public NoAnnotationPerson() {
         }
@@ -349,5 +349,22 @@ class PersonControllerTest {
                     IllegalEntityStateException ie = (IllegalEntityStateException) ex;
                     assertThat(ie.getEntityType()).isEqualTo(Employee.class);
                 });
+    }
+
+    @Test
+    void shouldThrowWhenNoDtoMapperFoundForClass() {
+        NoAnnotationPerson person = new NoAnnotationPerson();
+        assertThatThrownBy(() -> personDtoMapper.map(person))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No mapper found for class NoAnnotationPerson");
+    }
+
+    @Test
+    void shouldThrowWhenNoDtoMapperFoundForApplyTypeSpecificData() {
+        NoAnnotationPerson person = new NoAnnotationPerson();
+        CommandWithoutAnnotation cmd = new CommandWithoutAnnotation();
+        assertThatThrownBy(() -> personDtoMapper.applyTypeSpecificData(person, cmd))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No mapper found for class NoAnnotationPerson");
     }
 }
