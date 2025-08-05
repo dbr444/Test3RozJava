@@ -1,30 +1,24 @@
 package pl.kurs.test3roz.services.crudservices;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 import pl.kurs.test3roz.exceptions.IllegalEntityIdException;
 import pl.kurs.test3roz.exceptions.IllegalEntityStateException;
 import pl.kurs.test3roz.exceptions.RequestedEntityNotFoundException;
 import pl.kurs.test3roz.models.Identificationable;
-
 import java.lang.reflect.ParameterizedType;
-import java.util.List;
 
 public abstract class GenericCrudService<T extends Identificationable, R extends JpaRepository<T, String>> implements ICrudService<T> {
 
     protected final R repository;
-    @Autowired
-    protected EntityManager entityManager;
     protected final Class<T> entityType;
-
 
     public GenericCrudService(R repository) {
         this.repository = repository;
         this.entityType = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
     }
-
 
     @Override
     @Transactional
@@ -36,11 +30,11 @@ public abstract class GenericCrudService<T extends Identificationable, R extends
         return entity;
     }
 
-    @Override
-    @Transactional
-    public List<T> getAll() {
-        return repository.findAll();
-    }
+//    @Override // tutaj pokazuje tylko jakbym zamienił, ale korzystam nie korzystam z niej nigdzie, bo dedykowana jest inna w kontrolerze
+//    @Transactional(readOnly = true)
+//    public Page<T> getAll(Pageable pageable) {
+//        return repository.findAll(pageable);
+//    }
 
     @Override
     @Transactional

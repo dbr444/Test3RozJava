@@ -2,13 +2,14 @@ package pl.kurs.test3roz.imports;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import pl.kurs.test3roz.commands.CreatePersonCommand;
 import pl.kurs.test3roz.exceptions.ImportParseException;
 import pl.kurs.test3roz.imports.csv.CsvLineToCommandParser;
 import pl.kurs.test3roz.models.people.Person;
 import pl.kurs.test3roz.services.PersonService;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,6 +25,7 @@ public class PersonFileImporter {
     private final PersonService personService;
     private final ImportProperties properties;
     private final EntityManager entityManager;
+    private static final Logger log = LoggerFactory.getLogger(ImportWorker.class);
 
     public void run(InputStream inputStream, ImportStatus status, ImportLock lock) {
         try {
@@ -34,8 +36,7 @@ public class PersonFileImporter {
             processLines(lines, header, status);
         } catch (Exception e) {
             status.setFailed(true);
-            System.out.println(">>> IMPORT ERROR: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Unexpected error in importWorkerRunner", e);
             throw new ImportParseException("Import failed", e);
         } finally {
             lock.unlock();

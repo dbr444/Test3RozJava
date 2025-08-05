@@ -6,7 +6,8 @@ import pl.kurs.test3roz.models.people.Employee;
 import pl.kurs.test3roz.repositories.EmployeeRepository;
 
 @Service
-public class EmployeeCrudService extends GenericCrudService<Employee, EmployeeRepository> {
+public class EmployeeCrudService extends GenericCrudService<Employee, EmployeeRepository>
+        implements IPersonCrudService<Employee> {
     public EmployeeCrudService(EmployeeRepository repository) {
         super(repository);
     }
@@ -14,5 +15,16 @@ public class EmployeeCrudService extends GenericCrudService<Employee, EmployeeRe
     public Employee findByIdWithLock(String id) {
         return repository.findByIdWithLock(id)
                 .orElseThrow(() -> new RequestedEntityNotFoundException("Entity not found!", entityType));
+    }
+
+    @Override
+    public Employee getWithRelations(String id) {
+        return repository.findByIdWithPositions(id)
+                .orElseThrow(() -> new RequestedEntityNotFoundException("Entity not found!", entityType));
+    }
+
+    @Override
+    public Class<Employee> getSupportedClass() {
+        return Employee.class;
     }
 }

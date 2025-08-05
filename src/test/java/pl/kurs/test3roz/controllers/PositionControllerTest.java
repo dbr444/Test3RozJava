@@ -126,4 +126,31 @@ class PositionControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Daty nakładają się na istniejące stanowisko.")));
     }
+
+    @Test
+    void shouldAssignNonOverlappingPositionSuccessfully() throws Exception {
+        String first = Files.readString(Path.of("src/test/resources/json/assign-position.json"));
+        mockMvc.perform(post("/api/employees/" + employee.getId() + "/positions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(first)
+                        .with(user("testuser").roles("EMPLOYEE")))
+                .andExpect(status().isCreated());
+
+        String second = """
+        {
+          "jobName": "Project Manager",
+          "startDate": "2058-01-01",
+          "endDate": "2060-01-01",
+          "salary": 12345.67
+        }
+        """;
+
+        mockMvc.perform(post("/api/employees/" + employee.getId() + "/positions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(second)
+                        .with(user("testuser").roles("EMPLOYEE")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.jobName").value("Project Manager"))
+                .andExpect(jsonPath("$.salary").value(12345.67));
+    }
 }

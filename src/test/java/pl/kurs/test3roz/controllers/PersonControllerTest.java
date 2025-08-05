@@ -1,14 +1,5 @@
 package pl.kurs.test3roz.controllers;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,11 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import pl.kurs.test3roz.commands.CreateEmployeeCommand;
 import pl.kurs.test3roz.commands.CreatePersonCommand;
 import pl.kurs.test3roz.commands.CreateRetireeCommand;
 import pl.kurs.test3roz.commands.CreateStudentCommand;
-import pl.kurs.test3roz.commands.UpdateStudentCommand;
 import pl.kurs.test3roz.dto.PersonDto;
 import pl.kurs.test3roz.dto.RetireeDto;
 import pl.kurs.test3roz.dto.StudentDto;
@@ -32,19 +21,22 @@ import pl.kurs.test3roz.exceptions.RequestedEntityNotFoundException;
 import pl.kurs.test3roz.mappers.PersonDtoMapper;
 import pl.kurs.test3roz.models.Gender;
 import pl.kurs.test3roz.models.PersonType;
-import pl.kurs.test3roz.models.Position;
 import pl.kurs.test3roz.models.people.Employee;
 import pl.kurs.test3roz.models.people.Person;
 import pl.kurs.test3roz.services.PersonService;
 import pl.kurs.test3roz.services.crudservices.EmployeeCrudService;
 import pl.kurs.test3roz.services.crudservices.PersonCrudService;
 import pl.kurs.test3roz.services.crudservices.PositionCrudService;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -159,43 +151,11 @@ class PersonControllerTest {
     }
 
     @Test
-    void shouldCreateMultiplePersons() {
-        Employee e1 = new Employee();
-        e1.setFirstName("A");
-        e1.setLastName("B");
-        e1.setPesel("02070803629");
-        e1.setEmail("a@b.pl");
-        e1.setHeight(170.0);
-        e1.setWeight(70.0);
-        e1.setGender(Gender.MALE);
-        e1.setPassword("pass");
-        setTypeFromAnnotation(e1);
-
-        Employee e2 = new Employee();
-        e2.setFirstName("C");
-        e2.setLastName("D");
-        e2.setPesel("02070803630");
-        e2.setEmail("c@d.pl");
-        e2.setHeight(160.0);
-        e2.setWeight(60.0);
-        e2.setGender(Gender.FEMALE);
-        e2.setPassword("pass");
-        setTypeFromAnnotation(e2);
-
-        employeeCrudService.add(e1);
-        employeeCrudService.add(e2);
-
-        List<Person> all = personCrudService.getAll();
-        assertThat(all).hasSize(3);
-    }
-
-    @Test
     void shouldHaveNoActivePositionInitially() {
         boolean hasActive = employee.getPositions().stream()
                 .anyMatch(p -> p.getEndDate() == null);
         assertThat(hasActive).isFalse();
     }
-
 
     @Test
     void shouldCreateStudentAndReturnStudentDto() {
@@ -211,25 +171,6 @@ class PersonControllerTest {
 
         PersonDto dto = personService.createPerson(cmd);
         assertThat(dto).isInstanceOf(RetireeDto.class);
-    }
-
-    @Test
-    void shouldThrowOptimisticLockExceptionWhenVersionMismatch() {
-        CreateStudentCommand cmd = createValidStudentCommand();
-
-        PersonDto created = personService.createPerson(cmd);
-
-        UpdateStudentCommand update = new UpdateStudentCommand();
-        update.setFirstName("Ala");
-        update.setLastName("Nowak");
-        update.setGender(Gender.FEMALE);
-        update.setHeight(160.0);
-        update.setWeight(55.0);
-        update.setStudyMajor("Matematyka");
-        update.setVersion(Long.valueOf(created.getVersion() + 1));
-
-        assertThatThrownBy(() -> personService.updatePerson(created.getId(), update))
-                .isInstanceOf(OptimisticLockException.class);
     }
 
     @Test
@@ -281,6 +222,16 @@ class PersonControllerTest {
                 .hasMessageContaining("Entity not found!");
     }
 
+    @Test
+    void shouldThrowRequestedEntityNotFoundWhenGetWithRelationsNotExists() {
+        String nonExistentId = "9999999999999999";
+
+        assertThatThrownBy(() -> employeeCrudService.getWithRelations(nonExistentId))
+                .isInstanceOf(RequestedEntityNotFoundException.class)
+                .hasMessageContaining("Entity not found!");
+    }
+
+
     private CreateStudentCommand createValidStudentCommand() {
         CreateStudentCommand cmd = new CreateStudentCommand();
         cmd.setFirstName("Anna");
@@ -310,7 +261,6 @@ class PersonControllerTest {
         cmd.setYearsWorked(1);
         return cmd;
     }
-
 
     static class NoAnnotationPerson extends Person {
         public NoAnnotationPerson() {

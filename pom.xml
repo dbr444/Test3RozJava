@@ -92,6 +92,17 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+            <version>3.27.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.12.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -122,9 +133,11 @@
                                 <exclude>**/securityconfig/*</exclude>
                                 <exclude>**/test3roz/commands/*</exclude>
                                 <exclude>**/test3roz/config/*</exclude>
+                                <exclude>**/test3roz/imports/config/*</exclude>
                                 <exclude>**/test3roz/dto/*</exclude>
                                 <exclude>**/test3roz/exceptionhandling/*</exclude>
                                 <exclude>**/test3roz/filters/*</exclude>
+                                <exclude>**/test3roz/services/crudservices/IPersonCrudService.class</exclude>
                                 <exclude>**/test3roz/models/**</exclude>
                                 <exclude>**/test3roz/repositories/specifications/*</exclude>
                                 <exclude>**/test3roz/views/*</exclude>
@@ -142,9 +155,11 @@
                                 <exclude>**/securityconfig/*</exclude>
                                 <exclude>**/test3roz/commands/*</exclude>
                                 <exclude>**/test3roz/config/*</exclude>
+                                <exclude>**/test3roz/imports/config/*</exclude>
                                 <exclude>**/test3roz/dto/*</exclude>
                                 <exclude>**/test3roz/exceptionhandling/*</exclude>
                                 <exclude>**/test3roz/filters/*</exclude>
+                                <exclude>**/test3roz/services/crudservices/IPersonCrudService.class</exclude>
                                 <exclude>**/test3roz/models/**</exclude>
                                 <exclude>**/test3roz/repositories/specifications/*</exclude>
                                 <exclude>**/test3roz/views/*</exclude>

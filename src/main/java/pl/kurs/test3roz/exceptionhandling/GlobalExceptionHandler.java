@@ -1,7 +1,6 @@
 package pl.kurs.test3roz.exceptionhandling;
 
 import jakarta.persistence.OptimisticLockException;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import pl.kurs.test3roz.exceptions.IllegalEntityIdException;
 import pl.kurs.test3roz.exceptions.IllegalEntityStateException;
-import pl.kurs.test3roz.exceptions.ImportAlreadyRunningException;
+import pl.kurs.test3roz.exceptions.ImportException;
 import pl.kurs.test3roz.exceptions.RequestedEntityNotFoundException;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -118,8 +117,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(ImportAlreadyRunningException.class)
-    public ResponseEntity<String> handleImportAlreadyRunning(ImportAlreadyRunningException e) {
+    @ExceptionHandler(ImportException.class)
+    public ResponseEntity<String> handleImportAlreadyRunning(ImportException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 }

@@ -1,21 +1,42 @@
 package pl.kurs.test3roz.imports;
 
+import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
+@RequiredArgsConstructor
 public class ImportLock {
-    private final AtomicBoolean lock = new AtomicBoolean(false);
+
+    private final RedissonClient redissonClient;
+
+    private final ImportProperties importProperties;
+
+    private static final String LOCK_NAME = "import_lock";
 
     public boolean tryLock() {
-        return lock.compareAndSet(false, true);
+        if (importProperties.isAllowParallelImports()) {
+            return true;
+        }
+        RLock lock = redissonClient.getLock(LOCK_NAME);
+        return lock.tryLock();
     }
 
     public void unlock() {
-        lock.set(false);
+        if (!importProperties.isAllowParallelImports()) {
+            RLock lock = redissonClient.getLock(LOCK_NAME);
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
     }
 
     public boolean isLocked() {
-        return lock.get();
+        if (importProperties.isAllowParallelImports()) {
+            return false;
+        }
+        RLock lock = redissonClient.getLock(LOCK_NAME);
+        return lock.isLocked();
     }
 }

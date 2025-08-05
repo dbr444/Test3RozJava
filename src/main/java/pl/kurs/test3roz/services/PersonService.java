@@ -1,8 +1,6 @@
 package pl.kurs.test3roz.services;
 
-import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,13 +13,18 @@ import pl.kurs.test3roz.filters.GetPersonFilter;
 import pl.kurs.test3roz.mappers.PersonDtoMapper;
 import pl.kurs.test3roz.models.PersonType;
 import pl.kurs.test3roz.models.people.Person;
+import pl.kurs.test3roz.services.crudservices.IPersonCrudService;
 import pl.kurs.test3roz.services.crudservices.PersonCrudService;
 import pl.kurs.test3roz.services.crudservices.PersonSummaryViewCrudService;
 import pl.kurs.test3roz.views.PersonSummaryView;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@AllArgsConstructor
+
 public class PersonService {
 
     private final PersonCrudService personCrudService;
@@ -29,6 +32,23 @@ public class PersonService {
     private final PersonSummaryViewCrudService personSummaryViewCrudService;
     private final PasswordEncoder passwordEncoder;
     private final PersonDtoMapper personDtoMapper;
+    private final Map<Class<? extends Person>, IPersonCrudService<? extends Person>> personCrudServices;
+
+    public PersonService(
+            PersonCrudService personCrudService,
+            ModelMapper modelMapper,
+            PersonSummaryViewCrudService personSummaryViewCrudService,
+            PasswordEncoder passwordEncoder,
+            PersonDtoMapper personDtoMapper,
+            List<IPersonCrudService<?>> crudServices
+    ) {
+        this.personCrudService = personCrudService;
+        this.modelMapper = modelMapper;
+        this.personSummaryViewCrudService = personSummaryViewCrudService;
+        this.passwordEncoder = passwordEncoder;
+        this.personDtoMapper = personDtoMapper;
+        this.personCrudServices = crudServices.stream().collect(Collectors.toMap(IPersonCrudService::getSupportedClass, Function.identity()));
+    }
 
     public PersonDto createPerson(CreatePersonCommand command) {
         Person person = preparePerson(command);
@@ -37,10 +57,10 @@ public class PersonService {
     }
 
     public PersonDto updatePerson(String id, UpdatePersonCommand command) {
-        Person person = personCrudService.get(id);
-
-        if (!person.getVersion().equals(command.getVersion()))
-            throw new OptimisticLockException("Person has been modified concurrently.");
+        IPersonCrudService<? extends Person> specificCrudService = personCrudServices.get(command.getTargetClass());
+        Person person = specificCrudService != null
+                ? specificCrudService.getWithRelations(id)
+                : personCrudService.get(id);
 
         updateCommonFields(person, command);
         command.applyTo(person);
