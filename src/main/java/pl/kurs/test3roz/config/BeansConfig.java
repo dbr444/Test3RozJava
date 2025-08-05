@@ -41,11 +41,6 @@ public class BeansConfig {
     }
 
     @Bean
-    public ExecutorService executorService() {
-        return Executors.newFixedThreadPool(1);
-    }
-
-    @Bean
     public Jackson2ObjectMapperBuilderCustomizer registerSubtypesDynamically() {
         return builder -> builder.postConfigurer(mapper -> {
             Reflections reflections = new Reflections(
