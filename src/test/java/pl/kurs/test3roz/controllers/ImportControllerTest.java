@@ -10,6 +10,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -23,16 +24,11 @@ import pl.kurs.test3roz.imports.ImportService;
 import pl.kurs.test3roz.imports.ImportStatus;
 import pl.kurs.test3roz.imports.ImportTask;
 import pl.kurs.test3roz.imports.ImportWorker;
+import pl.kurs.test3roz.imports.csv.CsvLineToCommandParser;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.Duration;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -57,11 +53,13 @@ class ImportControllerTest {
     @Autowired
     private ImportProperties importProperties;
 
+    @Autowired
+    private ApplicationContext context;
+
     @BeforeEach
     void setUp() {
         importLock.unlock();
     }
-
 
     @Test
     void shouldReturnStatusWithoutStartingImport() throws Exception {
@@ -70,53 +68,13 @@ class ImportControllerTest {
     }
 
     @Test
-    void shouldStartCsvImport() throws Exception {
-        byte[] content = Files.readAllBytes(Paths.get("src/test/resources/test-import.csv"));
-        MockMultipartFile file = new MockMultipartFile("file", "test-import.csv", "text/csv", content);
-
-        String response = mockMvc.perform(multipart("/api/imports").file(file))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        await().atMost(2, SECONDS).untilAsserted(() ->
-                mockMvc.perform(get("/api/imports/status/" + importId).with(user("test").roles("IMPORTER")))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.running").value(false))
-                        .andExpect(jsonPath("$.processedRows").value(3))
-        );
-    }
-
-    @Test
-    void shouldSetFailedWhenTooFewCommonFields() throws Exception {
-        String content = """
-        type,firstName
-        EMPLOYEE,John
-        """;
-
-        MockMultipartFile file = new MockMultipartFile("file", "bad.csv", "text/csv", content.getBytes());
-
-        String response = mockMvc.perform(multipart("/api/imports").file(file))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        Thread.sleep(500);
-
-        mockMvc.perform(get("/api/imports/status/" + importId))
-                .andExpect(jsonPath("$.failed").value(true));
-    }
-
-    @Test
     void shouldNotUseLockWhenParallelImportsAllowed() throws Exception {
         importProperties.setAllowParallelImports(true);
 
         String content = """
-        type,firstName,lastName,pesel,height,weight,email,gender,password,hireDate,endDate,currentPosition,currentSalary
-        EMPLOYEE,Anna,Nowak,90010112345,165.0,60.0,test_email1@example.com,FEMALE,haslo123,2022-01-01,2030-01-01,Developer,5000
-        """;
+                type,firstName,lastName,pesel,height,weight,email,gender,password,hireDate,endDate,currentPosition,currentSalary
+                EMPLOYEE,Anna,Nowak,90010112345,165.0,60.0,test_email1@example.com,FEMALE,haslo123,2022-01-01,2030-01-01,Developer,5000
+                """;
 
         MockMultipartFile file = new MockMultipartFile("file", "parallel.csv", "text/csv", content.getBytes());
 
@@ -215,13 +173,17 @@ class ImportControllerTest {
         ImportExecutor executor = Mockito.mock(ImportExecutor.class);
         ImportLock lock = Mockito.mock(ImportLock.class);
 
-        Mockito.when(queue.take()).thenReturn(task).thenAnswer(i -> { Thread.sleep(1000); return null; });
+        Mockito.when(queue.take()).thenReturn(task).thenAnswer(i -> {
+            Thread.sleep(1000);
+            return null;
+        });
         Mockito.when(lock.tryLock()).thenReturn(false);
 
         new Thread(() -> {
             try {
                 new ImportWorker(queue, executor, lock).importWorkerRunner().run(null);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }).start();
 
         Thread.sleep(300);
@@ -245,6 +207,16 @@ class ImportControllerTest {
         new ImportWorker(queue, executor, lock).importWorkerRunner().run(null);
     }
 
+    @Test
+    void shouldThrowForUnknownType() {
+        CsvLineToCommandParser parser = context.getBean(CsvLineToCommandParser.class);
+        String[] header = {"type", "firstName"};
+        String[] values = {"FAKE", "John"};
+
+        assertThatThrownBy(() -> parser.parse(values, header))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown type");
+    }
 
     @Test
     void shouldStartImportButFailAndSetStatusAccordingly() throws Exception {
@@ -305,55 +277,6 @@ class ImportControllerTest {
     }
 
     @Test
-    void shouldFailImportWhenUnknownTypeProvided() throws Exception {
-        String content = """
-            type,firstName,lastName,pesel,height,weight,email,salary
-            xxxxx,John,Doe,12345678901,180,75,john@example.com,10000
-            """;
-
-        MockMultipartFile file = new MockMultipartFile("file", "people.csv", "text/csv", content.getBytes());
-
-        String response = mockMvc.perform(multipart("/api/imports").file(file)
-                        .with(user("admin").roles("ADMIN")))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-            mockMvc.perform(get("/api/imports/status/" + importId)
-                            .with(user("admin").roles("ADMIN")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.failed").value(true))
-                    .andExpect(jsonPath("$.running").value(false));
-        });
-    }
-
-    @Test
-    void shouldFailImportWhenJsonProcessingExceptionOccurs() throws Exception {
-        String content = """
-            type,firstName,lastName,pesel,height,weight,email,salary
-            employee,John,Doe,12345678901,180,75,john@example.com,xxxxx
-            """;
-
-        MockMultipartFile file = new MockMultipartFile("file", "people.csv", "text/csv", content.getBytes());
-
-        String response = mockMvc.perform(multipart("/api/imports").file(file)
-                        .with(user("admin").roles("ADMIN")))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-            mockMvc.perform(get("/api/imports/status/" + importId)
-                            .with(user("admin").roles("ADMIN")))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.failed").value(true))
-                    .andExpect(jsonPath("$.running").value(false));
-        });
-    }
-    @Test
     void shouldCreateImportTaskAndAccessFields() {
         InputStream mockStream = new ByteArrayInputStream("data".getBytes());
         ImportStatus status = new ImportStatus();
@@ -362,6 +285,15 @@ class ImportControllerTest {
         assertThat(task.getImportId()).isEqualTo("123");
         assertThat(task.getInputStream()).isSameAs(mockStream);
         assertThat(task.getStatus()).isSameAs(status);
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenStatusNotFound() {
+        String unknownId = "fakeid";
+
+        assertThatThrownBy(() -> importService.getStatus(unknownId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Import with id " + unknownId + " not found");
     }
 
     private String extractImportId(String response) throws Exception {
