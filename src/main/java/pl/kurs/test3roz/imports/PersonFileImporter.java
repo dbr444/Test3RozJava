@@ -38,8 +38,6 @@ public class PersonFileImporter {
             status.setFailed(true);
             log.error("Unexpected error in importWorkerRunner", e);
             throw new ImportParseException("Import failed", e);
-        } finally {
-            lock.unlock();
         }
     }
 
