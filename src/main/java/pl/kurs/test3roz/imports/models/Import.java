@@ -23,7 +23,7 @@ public class Import {
 
     private LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt;
+    private LocalDateTime finishedAt;
 
     private long processedRows;
 }

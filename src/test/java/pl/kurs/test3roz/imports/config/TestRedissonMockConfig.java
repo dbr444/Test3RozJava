@@ -28,5 +28,4 @@ public class TestRedissonMockConfig {
         Mockito.when(client.getBlockingQueue(Mockito.anyString())).thenReturn(mockQueue);
         return client;
     }
-
 }

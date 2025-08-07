@@ -35,7 +35,7 @@ public class ImportService {
             entity.setFilePath(tempFile.toString());
             entity.setStatus(ImportStatus.PENDING);
             entity.setCreatedAt(LocalDateTime.now());
-            entity.setUpdatedAt(LocalDateTime.now());
+            entity.setFinishedAt(LocalDateTime.now());
             taskRepository.save(entity);
 
             ImportTask task = new ImportTask(importId, tempFile.toString());
@@ -55,7 +55,7 @@ public class ImportService {
     public ImportStatusDto getStatusDto(String importId) {
         Import entity = taskRepository.findById(importId)
                 .orElseThrow(() -> new IllegalArgumentException("Import with id " + importId + " not found"));
-        return new ImportStatusDto(entity.getImportId(), entity.getStatus().name(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getProcessedRows(), entity.getStatus() == ImportStatus.FAILED, entity.getStatus() == ImportStatus.PROCESSING);
+        return new ImportStatusDto(entity.getImportId(), entity.getStatus().name(), entity.getCreatedAt(), entity.getFinishedAt(), entity.getProcessedRows(), entity.getStatus() == ImportStatus.FAILED, entity.getStatus() == ImportStatus.PROCESSING);
     }
 
     public void resumePendingTasks(ImportQueue queue) {

@@ -58,7 +58,7 @@ public class ImportWorker {
 
                         log.info("Import ID {} started", entity.getImportId());
                         entity.setStatus(ImportStatus.PROCESSING);
-                        entity.setUpdatedAt(LocalDateTime.now());
+                        entity.setFinishedAt(LocalDateTime.now());
                         taskRepository.save(entity);
 
                         AtomicLong processedRows = new AtomicLong(0);
@@ -77,7 +77,7 @@ public class ImportWorker {
                                     log.warn("Failed to delete temp file: {}", task.getFilePath(), ex);
                                 }
                             }
-                            entity.setUpdatedAt(LocalDateTime.now());
+                            entity.setFinishedAt(LocalDateTime.now());
                             taskRepository.save(entity);
                             lock.unlock();
                         }
