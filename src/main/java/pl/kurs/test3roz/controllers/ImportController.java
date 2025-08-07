@@ -5,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pl.kurs.test3roz.imports.ImportIdDto;
+import pl.kurs.test3roz.imports.models.ImportIdDto;
 import pl.kurs.test3roz.imports.ImportService;
-import pl.kurs.test3roz.imports.ImportStatus;
+import pl.kurs.test3roz.imports.models.ImportStatusDto;
 
 @RestController
 @RequestMapping("/api/imports")
@@ -23,8 +23,7 @@ public class ImportController {
     }
 
     @GetMapping("/status/{importId}")
-    public ResponseEntity<ImportStatus> getStatus(@PathVariable String importId) {
-        return ResponseEntity.ok(importService.getStatus(importId));
+    public ResponseEntity<ImportStatusDto> getStatus(@PathVariable String importId) {
+        return ResponseEntity.ok(importService.getStatusDto(importId));
     }
-
 }

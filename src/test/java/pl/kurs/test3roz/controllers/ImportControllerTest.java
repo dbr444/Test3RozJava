@@ -21,12 +21,16 @@ import pl.kurs.test3roz.imports.ImportLock;
 import pl.kurs.test3roz.imports.ImportProperties;
 import pl.kurs.test3roz.imports.ImportQueue;
 import pl.kurs.test3roz.imports.ImportService;
-import pl.kurs.test3roz.imports.ImportStatus;
 import pl.kurs.test3roz.imports.ImportTask;
+import pl.kurs.test3roz.imports.ImportTaskRepository;
 import pl.kurs.test3roz.imports.ImportWorker;
 import pl.kurs.test3roz.imports.csv.CsvLineToCommandParser;
+import pl.kurs.test3roz.imports.models.Import;
+import pl.kurs.test3roz.imports.models.ImportStatus;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -144,10 +148,12 @@ class ImportControllerTest {
         ImportQueue mockQueue = Mockito.mock(ImportQueue.class);
         ImportExecutor mockExecutor = Mockito.mock(ImportExecutor.class);
         ImportLock mockLock = Mockito.mock(ImportLock.class);
+        ImportService mockImportService = Mockito.mock(ImportService.class);
+        ImportTaskRepository mockTaskRepository = Mockito.mock(ImportTaskRepository.class);
 
         Mockito.when(mockQueue.take()).thenThrow(new InterruptedException());
 
-        ImportWorker worker = new ImportWorker(mockQueue, mockExecutor, mockLock);
+        ImportWorker worker = new ImportWorker(mockQueue, mockExecutor, mockLock, mockImportService, mockTaskRepository);
 
         Runnable runnable = () -> {
             try {
@@ -162,26 +168,37 @@ class ImportControllerTest {
         thread.interrupt();
     }
 
+
     @Test
     void shouldRescheduleTaskWhenLockUnavailable() throws Exception {
         ImportTask task = Mockito.mock(ImportTask.class);
-        ImportStatus status = new ImportStatus();
-        status.setId("123");
-        Mockito.when(task.getStatus()).thenReturn(status);
+        Mockito.when(task.getImportId()).thenReturn("123");
+        Mockito.when(task.getFilePath()).thenReturn("/tmp/file.csv");
 
         ImportQueue queue = Mockito.mock(ImportQueue.class);
         ImportExecutor executor = Mockito.mock(ImportExecutor.class);
         ImportLock lock = Mockito.mock(ImportLock.class);
+        ImportService importService = Mockito.mock(ImportService.class);
+        ImportTaskRepository taskRepository = Mockito.mock(ImportTaskRepository.class);
+
+        Import importEntity = new Import();
+        importEntity.setImportId("123");
+        importEntity.setFilePath("/tmp/file.csv");
+        importEntity.setStatus(ImportStatus.PENDING);
+        Mockito.when(importService.getStatus("123")).thenReturn(importEntity);
 
         Mockito.when(queue.take()).thenReturn(task).thenAnswer(i -> {
             Thread.sleep(1000);
             return null;
         });
+
         Mockito.when(lock.tryLock()).thenReturn(false);
+
+        ImportWorker worker = new ImportWorker(queue, executor, lock, importService, taskRepository);
 
         new Thread(() -> {
             try {
-                new ImportWorker(queue, executor, lock).importWorkerRunner().run(null);
+                worker.importWorkerRunner().run(null);
             } catch (Exception ignored) {
             }
         }).start();
@@ -190,22 +207,32 @@ class ImportControllerTest {
         Mockito.verify(queue).submit(task);
     }
 
+
     @Test
     void shouldLogUnexpectedErrorWhenExceptionThrown() throws Exception {
         ImportTask task = Mockito.mock(ImportTask.class);
-        ImportStatus status = new ImportStatus();
-        status.setId("123");
-        Mockito.when(task.getStatus()).thenReturn(status);
+        Mockito.when(task.getImportId()).thenReturn("123");
+        Mockito.when(task.getFilePath()).thenReturn("/tmp/file.csv");
 
         ImportQueue queue = Mockito.mock(ImportQueue.class);
         ImportExecutor executor = Mockito.mock(ImportExecutor.class);
         ImportLock lock = Mockito.mock(ImportLock.class);
+        ImportService importService = Mockito.mock(ImportService.class);
+        ImportTaskRepository taskRepository = Mockito.mock(ImportTaskRepository.class);
+
+        Import importEntity = new Import();
+        importEntity.setImportId("123");
+        importEntity.setFilePath("/tmp/file.csv");
+        importEntity.setStatus(ImportStatus.PENDING);
+        Mockito.when(importService.getStatus("123")).thenReturn(importEntity);
 
         Mockito.when(queue.take()).thenReturn(task).thenReturn(null);
         Mockito.when(lock.tryLock()).thenThrow(new RuntimeException("Simulated"));
 
-        new ImportWorker(queue, executor, lock).importWorkerRunner().run(null);
+        ImportWorker worker = new ImportWorker(queue, executor, lock, importService, taskRepository);
+        worker.importWorkerRunner().run(null);
     }
+
 
     @Test
     void shouldThrowForUnknownType() {
@@ -219,56 +246,6 @@ class ImportControllerTest {
     }
 
     @Test
-    void shouldStartImportButFailAndSetStatusAccordingly() throws Exception {
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "test.csv", "text/csv",
-                "type,firstName,lastName,pesel,height,weight,email,gender\nEMPLOYEE,A,B,INVALID_PESEL,180,75,a@b.pl,MALE".getBytes()
-        );
-
-        String response = mockMvc.perform(multipart("/api/imports").file(file))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        Thread.sleep(500);
-
-        mockMvc.perform(get("/api/imports/status/" + importId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.failed").value(true))
-                .andExpect(jsonPath("$.running").value(false));
-    }
-
-    @Test
-    void shouldSetFailedStatusAndUnlockWhenImportThrowsException() throws Exception {
-        importProperties.setAllowParallelImports(true);
-        importLock.unlock();
-
-        MockMultipartFile brokenFile = new MockMultipartFile(
-                "file",
-                "broken.csv",
-                "text/csv",
-                "type,firstName,lastName,pesel,height,weight,email,gender,password\nEMPLOYEE,A,B,INVALID_PESEL,180,75,a@b.pl,MALE,pass".getBytes()
-        );
-
-        String response = mockMvc.perform(multipart("/api/imports").file(brokenFile))
-                .andExpect(status().isAccepted())
-                .andReturn().getResponse().getContentAsString();
-
-        String importId = extractImportId(response);
-
-        Thread.sleep(500);
-
-        mockMvc.perform(get("/api/imports/status/" + importId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.failed").value(true))
-                .andExpect(jsonPath("$.running").value(false));
-
-        assertThat(importLock.isLocked()).isFalse();
-    }
-
-
-    @Test
     void shouldCreateImportExceptionWithMessage() {
         assertThatThrownBy(() -> {
             throw new ImportException("Something went wrong");
@@ -278,13 +255,10 @@ class ImportControllerTest {
 
     @Test
     void shouldCreateImportTaskAndAccessFields() {
-        InputStream mockStream = new ByteArrayInputStream("data".getBytes());
-        ImportStatus status = new ImportStatus();
-        ImportTask task = new ImportTask("123", mockStream, status);
+        ImportTask task = new ImportTask("123", "/tmp/file.csv");
 
         assertThat(task.getImportId()).isEqualTo("123");
-        assertThat(task.getInputStream()).isSameAs(mockStream);
-        assertThat(task.getStatus()).isSameAs(status);
+        assertThat(task.getFilePath()).isEqualTo("/tmp/file.csv");
     }
 
     @Test

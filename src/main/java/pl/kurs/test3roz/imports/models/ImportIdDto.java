@@ -1,4 +1,4 @@
-package pl.kurs.test3roz.imports;
+package pl.kurs.test3roz.imports.models;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -12,4 +12,5 @@ import org.springframework.stereotype.Component;
 public class ImportProperties {
     private boolean allowParallelImports;
     private int batchSize;
+    private String tempDir;
 }

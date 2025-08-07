@@ -1,14 +1,18 @@
 package pl.kurs.test3roz.imports;
 
+import org.redisson.api.RBlockingQueue;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 import pl.kurs.test3roz.exceptions.ImportException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 @Component
 public class ImportQueue {
 
-    private final BlockingQueue<ImportTask> queue = new LinkedBlockingQueue<>();
+    private final RBlockingQueue<ImportTask> queue;
+
+    public ImportQueue(RedissonClient redissonClient) {
+        this.queue = redissonClient.getBlockingQueue("import_queue");
+    }
 
     public void submit(ImportTask task) {
         try {

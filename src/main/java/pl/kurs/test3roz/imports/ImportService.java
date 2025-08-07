@@ -3,31 +3,42 @@ package pl.kurs.test3roz.imports;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.InputStream;
+import pl.kurs.test3roz.imports.models.ImportIdDto;
+import pl.kurs.test3roz.imports.models.ImportStatusDto;
+import pl.kurs.test3roz.imports.models.ImportStatus;
+import pl.kurs.test3roz.imports.models.Import;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class ImportService {
 
     private final ImportQueue importQueue;
-    private final Map<String, ImportStatus> statusMap = new ConcurrentHashMap<>();
+    private final ImportProperties properties;
+    private final ImportTaskRepository taskRepository;
 
     public ImportIdDto importCsv(MultipartFile file) {
         try {
             String importId = UUID.randomUUID().toString();
-            ImportStatus status = new ImportStatus();
-            status.setId(importId);
-            status.setStartedAt(LocalDateTime.now());
-            status.setRunning(true);
 
-            statusMap.put(importId, status);
-            InputStream inputStream = file.getInputStream();
+            Path tempDir = Path.of(properties.getTempDir());
+            Files.createDirectories(tempDir);
+            Path tempFile = tempDir.resolve(importId + ".csv");
+            file.transferTo(tempFile.toFile());
 
-            ImportTask task = new ImportTask(importId, inputStream, status);
+            Import entity = new Import();
+            entity.setImportId(importId);
+            entity.setFilePath(tempFile.toString());
+            entity.setStatus(ImportStatus.PENDING);
+            entity.setCreatedAt(LocalDateTime.now());
+            entity.setUpdatedAt(LocalDateTime.now());
+            taskRepository.save(entity);
+
+            ImportTask task = new ImportTask(importId, tempFile.toString());
             importQueue.submit(task);
 
             return new ImportIdDto(importId);
@@ -36,10 +47,22 @@ public class ImportService {
         }
     }
 
-    public ImportStatus getStatus(String importId) {
-        ImportStatus status = statusMap.get(importId);
-        if (status == null)
-            throw new IllegalArgumentException("Import with id " + importId + " not found");
-        return status;
+    public Import getStatus(String importId) {
+        return taskRepository.findById(importId)
+                .orElseThrow(() -> new IllegalArgumentException("Import with id " + importId + " not found"));
+    }
+
+    public ImportStatusDto getStatusDto(String importId) {
+        Import entity = taskRepository.findById(importId)
+                .orElseThrow(() -> new IllegalArgumentException("Import with id " + importId + " not found"));
+        return new ImportStatusDto(entity.getImportId(), entity.getStatus().name(), entity.getCreatedAt(), entity.getUpdatedAt(), entity.getProcessedRows(), entity.getStatus() == ImportStatus.FAILED, entity.getStatus() == ImportStatus.PROCESSING);
+    }
+
+    public void resumePendingTasks(ImportQueue queue) {
+        List<Import> pendingTasks = taskRepository.findAllByStatusIn(List.of(ImportStatus.PENDING, ImportStatus.PROCESSING));
+        for (Import taskEntity : pendingTasks) {
+            ImportTask task = new ImportTask(taskEntity.getImportId(), taskEntity.getFilePath());
+            queue.submit(task);
+        }
     }
 }

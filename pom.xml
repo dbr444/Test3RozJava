@@ -134,6 +134,7 @@
                                 <exclude>**/test3roz/commands/*</exclude>
                                 <exclude>**/test3roz/config/*</exclude>
                                 <exclude>**/test3roz/imports/config/*</exclude>
+                                <exclude>**/test3roz/imports/models/*</exclude>
                                 <exclude>**/test3roz/dto/*</exclude>
                                 <exclude>**/test3roz/exceptionhandling/*</exclude>
                                 <exclude>**/test3roz/filters/*</exclude>
@@ -156,6 +157,7 @@
                                 <exclude>**/test3roz/commands/*</exclude>
                                 <exclude>**/test3roz/config/*</exclude>
                                 <exclude>**/test3roz/imports/config/*</exclude>
+                                <exclude>**/test3roz/imports/models/*</exclude>
                                 <exclude>**/test3roz/dto/*</exclude>
                                 <exclude>**/test3roz/exceptionhandling/*</exclude>
                                 <exclude>**/test3roz/filters/*</exclude>

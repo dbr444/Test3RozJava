@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 @Component
@@ -25,18 +26,15 @@ public class PersonFileImporter {
     private final PersonService personService;
     private final ImportProperties properties;
     private final EntityManager entityManager;
-    private static final Logger log = LoggerFactory.getLogger(ImportWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(PersonFileImporter.class);
 
-    public void run(InputStream inputStream, ImportStatus status, ImportLock lock) {
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+    public void run(InputStream inputStream, AtomicLong processedRows) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String[] header = readHeader(reader);
             Stream<String[]> lines = readLines(reader);
-
-            processLines(lines, header, status);
+            processLines(lines, header, processedRows);
         } catch (Exception e) {
-            status.setFailed(true);
-            log.error("Unexpected error in importWorkerRunner", e);
+            log.error("Unexpected error during import", e);
             throw new ImportParseException("Import failed", e);
         }
     }
@@ -49,23 +47,22 @@ public class PersonFileImporter {
         return reader.lines().map(line -> line.split(","));
     }
 
-    private void processLines(Stream<String[]> lines, String[] header, ImportStatus status) {
+    private void processLines(Stream<String[]> lines, String[] header, AtomicLong processedRows) {
         int batchSize = properties.getBatchSize();
         List<CreatePersonCommand> batch = new ArrayList<>(batchSize);
 
         lines.forEach(fields -> {
             CreatePersonCommand command = parser.parse(fields, header);
             batch.add(command);
-            status.getProcessedRows().incrementAndGet();
+            processedRows.incrementAndGet();
 
-            if (batch.size() == batchSize) {
+            if (batch.size() >= batchSize) {
                 persistBatch(batch);
                 batch.clear();
             }
         });
 
-        if (!batch.isEmpty())
-            persistBatch(batch);
+        if (!batch.isEmpty()) persistBatch(batch);
     }
 
     private void persistBatch(List<CreatePersonCommand> batch) {

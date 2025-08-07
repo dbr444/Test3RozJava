@@ -2,12 +2,13 @@ package pl.kurs.test3roz.imports;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import java.io.InputStream;
+import lombok.NoArgsConstructor;
+import java.io.Serializable;
 
 @Getter
 @AllArgsConstructor
-public class ImportTask {
-    private final String importId;
-    private final InputStream inputStream;
-    private final ImportStatus status;
+@NoArgsConstructor
+public class ImportTask implements Serializable {
+    private String importId;
+    private String filePath;
 }
